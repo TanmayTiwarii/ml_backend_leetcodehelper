@@ -37,4 +37,3 @@ def recommend_diff(df, last_20_ids, top_k=5):
     
     recs = unseen.sample(n=min(top_k, len(unseen)), random_state=42)
     return recs[["id", "problem_name", "difficulty", "topics"]]
-
