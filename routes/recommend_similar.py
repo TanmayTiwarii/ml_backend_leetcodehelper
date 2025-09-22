@@ -1,44 +1,16 @@
+import os
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer
-import os
 
 # -----------------------
-# Load & preprocess dataset once at startup
+# Load precomputed dataset & embeddings
 # -----------------------
-def load_dataset(path):
-    df = pd.read_csv(path)
-    df.columns = (
-        df.columns.str.strip()
-                  .str.lower()
-                  .str.replace("\n", "_")
-                  .str.replace(" ", "_")
-    )
-    return df
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
 
-def preprocess_dataset(df):
-    df["text_features"] = df["difficulty"].astype(str) + " " + df["topics"].astype(str)
-    return df
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-path = os.path.join(BASE_DIR, "LeetCode Questions.csv")
-df = preprocess_dataset(load_dataset(path))
-
-# -----------------------
-# Smaller Sentence-BERT model (lighter for Render 512MB)
-# -----------------------
-model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L3-v2")
-
-# Encode using float16 to save memory
-embeddings = model.encode(
-    df["text_features"].tolist(),
-    normalize_embeddings=True,
-    convert_to_numpy=True,
-    dtype=np.float16
-)
-
-embeddings = np.array(embeddings, dtype=np.float16)
+df = pd.read_csv(os.path.join(PROJECT_ROOT, "processed.csv"))
+embeddings = np.load(os.path.join(PROJECT_ROOT, "embeddings.npy"))
 
 # -----------------------
 # Recommendation helpers
@@ -50,10 +22,8 @@ def recommend(df, last_20_ids, top_k=5):
     last_vecs = embeddings[mask]
 
     if last_vecs.size == 0 or embeddings.size == 0:
-        print("Warning: last_vecs or embeddings is empty. Returning empty recommendations.")
         return df.head(0)
     if last_vecs.ndim != 2 or embeddings.ndim != 2:
-        print(f"Warning: invalid shape. last_vecs: {last_vecs.shape}, embeddings: {embeddings.shape}")
         return df.head(0)
 
     sim_scores = cosine_similarity(last_vecs, embeddings).mean(axis=0)
