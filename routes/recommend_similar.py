@@ -40,8 +40,19 @@ embeddings = np.array(embeddings)
 # Recommendation helpers
 # -----------------------
 def recommend(df, last_20_ids, top_k=5):
+    # Ensure last_20_ids are the same type as df['id']
+    id_type = df["id"].dtype
+    last_20_ids = [id_type.type(x) if hasattr(id_type, 'type') else id_type(x) for x in last_20_ids]
     mask = df["id"].isin(last_20_ids).values
     last_vecs = embeddings[mask]
+
+    # Check for empty or invalid shapes before similarity calculation
+    if last_vecs.size == 0 or embeddings.size == 0:
+        print("Warning: last_vecs or embeddings is empty. Returning empty recommendations.")
+        return df.head(0)  # Return empty DataFrame with same columns
+    if last_vecs.ndim != 2 or embeddings.ndim != 2:
+        print(f"Warning: last_vecs or embeddings is not 2D. Shapes: {last_vecs.shape}, {embeddings.shape}")
+        return df.head(0)
 
     sim_scores = cosine_similarity(last_vecs, embeddings).mean(axis=0)
 

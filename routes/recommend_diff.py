@@ -1,5 +1,4 @@
 import pandas as pd
-from sentence_transformers import SentenceTransformer
 import os
 
 # -----------------------
@@ -23,14 +22,19 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 path = os.path.join(BASE_DIR, "LeetCode Questions.csv")
 df = preprocess_dataset(load_dataset(path))
 
-# Load model (not really needed for "diff", but kept for consistency)
-model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-
 # -----------------------
-# Different recommendation (just pick 5 random unseen problems)
+# Different recommendation (random unseen problems)
 # -----------------------
 def recommend_diff(df, last_20_ids, top_k=5):
+    # Make sure IDs are integers (both df and last_20_ids)
+    df = df.copy()
+    df["id"] = df["id"].astype(int)
+    last_20_ids = [int(x) for x in last_20_ids]
+
     unseen = df[~df["id"].isin(last_20_ids)]
+    if unseen.empty:
+        return pd.DataFrame(columns=["id", "problem_name", "difficulty", "topics"])
+    
     recs = unseen.sample(n=min(top_k, len(unseen)), random_state=42)
-    recs["similarity"] = 0.0  # placeholder since no similarity calc
-    return recs
+    return recs[["id", "problem_name", "difficulty", "topics"]]
+
