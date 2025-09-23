@@ -90,6 +90,7 @@ async def get_diff(username: str = Query(..., description="LeetCode username")):
     return recs[["id", "problem_name", "difficulty", "topics"]].to_dict(orient="records")
 
 
-@app.get("/health")
+@app.get("/health", include_in_schema=False)
+@app.head("/health", include_in_schema=False)
 async def health_check():
     return {"status": "ok"}
